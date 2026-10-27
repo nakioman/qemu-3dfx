@@ -3,7 +3,7 @@ i386_system_ss.add(files(
   'mesagl_blit.c',
   'mesagl_impl.c',
   'mesapt_mm.c',
-  'mglcntx_linux.c',
+  'mglcntx_sdlgl.c',
   'mglcntx_mingw.c',
   'mglmapbo.c',
   'mglvarry.c',
