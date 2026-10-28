@@ -1,0 +1,51 @@
+SDL2: force 4:3 output in fullscreen.
+
+A CRT displays every mode at 4:3. Stretch the 2D guest surface into a 4:3
+box in fullscreen, so modes with other pixel aspects (the 720x400 text
+mode) look like they did on a monitor. Pointer coordinates follow the
+logical size, which only matters for absolute pointing devices.
+
+--- ./ui/sdl2-2d.c
++++ ./ui/sdl2-2d.c
+@@ -28,6 +28,22 @@
+ #include "ui/input.h"
+ #include "ui/sdl2.h"
+ 
++/*
++ * A CRT shows every mode at 4:3, so in fullscreen the guest surface is
++ * stretched into a 4:3 box instead of keeping its own pixel aspect (for
++ * example the 720x400 text mode). Windowed output is unchanged.
++ */
++static void sdl2_2d_set_logical_size(struct sdl2_console *scon)
++{
++    int w = surface_width(scon->surface);
++    int h = surface_height(scon->surface);
++
++    if (SDL_GetWindowFlags(scon->real_window) & SDL_WINDOW_FULLSCREEN) {
++        w = h * 4 / 3;
++    }
++    SDL_RenderSetLogicalSize(scon->real_renderer, w, h);
++}
++
+ void sdl2_2d_update(DisplayChangeListener *dcl,
+                     int x, int y, int w, int h)
+ {
+@@ -51,6 +67,7 @@
+     SDL_UpdateTexture(scon->texture, &rect,
+                       surface_data(surf) + surface_data_offset,
+                       surface_stride(surf));
++    sdl2_2d_set_logical_size(scon);
+     SDL_RenderClear(scon->real_renderer);
+     SDL_RenderCopy(scon->real_renderer, scon->texture, NULL, NULL);
+     SDL_RenderPresent(scon->real_renderer);
+@@ -85,9 +102,7 @@
+         sdl2_window_resize(scon);
+     }
+ 
+-    SDL_RenderSetLogicalSize(scon->real_renderer,
+-                             surface_width(new_surface),
+-                             surface_height(new_surface));
++    sdl2_2d_set_logical_size(scon);
+ 
+     switch (surface_format(scon->surface)) {
+     case PIXMAN_x1r5g5b5:
