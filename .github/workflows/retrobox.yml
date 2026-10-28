@@ -1,0 +1,39 @@
+name: retrobox
+
+on:
+  push:
+    branches: [retrobox]
+    tags: ['retrobox-*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Debian 13 matches the RetroBox host, so the binaries link against the
+    # same library versions the appliance installs.
+    container: debian:trixie
+    steps:
+      # git must exist before checkout: sign_commit and the wrapper stamps
+      # read the commit from the working tree.
+      - name: Install git
+        run: apt-get update && apt-get install -y --no-install-recommends git ca-certificates
+
+      - uses: actions/checkout@v4
+
+      - name: Build QEMU and XP guest tools
+        run: retrobox/build.sh --install-deps
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qemu-retrobox
+          path: retrobox/out/*
+          if-no-files-found: error
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/retrobox-')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: retrobox/out/*
