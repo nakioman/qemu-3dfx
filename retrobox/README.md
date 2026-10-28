@@ -13,9 +13,15 @@ RetroBox changes live on the `retrobox` branch.
 - **No X server.** QEMU builds the SDL GL context backend
   (`mglcntx_sdlgl.c`) instead of the GLX one and runs on SDL's `kmsdrm`
   driver, like 86Box on the appliance.
-- **Fullscreen fix for KMS/DRM** (`patches/0001-sdl2-fullscreen-no-resize.patch`):
-  QEMU no longer resizes a fullscreen SDL window on guest mode changes, which
-  left the panel black with SDL's GL renderers.
+- **KMS/DRM display fixes** for SDL2's `kmsdrm` backend with a GL renderer:
+  - `patches/0001-sdl2-fullscreen-no-resize.patch`: a fullscreen window is
+    never resized on guest mode changes (scaling handles it).
+  - `patches/0004-sdl2-2d-present-every-refresh.patch`: a frame presented
+    once never reaches the screen, so the 2D frame is re-presented on every
+    refresh tick instead of only on guest updates.
+  - `patches/0005-sdl2-2d-x-formats-are-opaque.patch`: the scanout honours
+    alpha, so x-channel framebuffers (x byte = 0) map to SDL's X formats
+    instead of showing as black.
 - **1024x768 monitor** (`patches/0002-vga-vbe-caps-follow-edid.patch`): with
   `-device VGA,edid=on,xmax=1024,ymax=768` the VGA BIOS only offers VESA
   modes up to the EDID maximum, like a period monitor.

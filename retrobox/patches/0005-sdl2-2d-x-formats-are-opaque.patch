@@ -1,0 +1,51 @@
+SDL2: map x-channel framebuffers to SDL X formats.
+
+QEMU handed x8r8g8b8 (and the other formats with an unused channel) to SDL
+as ARGB8888. Guest framebuffers leave the x byte at 0, so every pixel had
+alpha 0. On the kmsdrm backend that alpha reaches the ARGB8888 scanout
+and the panel shows black, even with texture blending disabled. Use
+SDL_PIXELFORMAT_RGB888/BGR888/RGBX8888/RGB555, so the renderer treats
+alpha as opaque.
+
+--- ./ui/sdl2-2d.c
++++ ./ui/sdl2-2d.c
+@@ -110,24 +110,35 @@
+     sdl2_2d_set_logical_size(scon);
+ 
+     switch (surface_format(scon->surface)) {
++    /*
++     * Formats with an unused x channel map to SDL's X formats: guest
++     * framebuffers leave those bits at 0, and as alpha they reach the kmsdrm
++     * scanout as fully transparent (black) pixels.
++     */
+     case PIXMAN_x1r5g5b5:
+-        format = SDL_PIXELFORMAT_ARGB1555;
++        format = SDL_PIXELFORMAT_RGB555;
+         break;
+     case PIXMAN_r5g6b5:
+         format = SDL_PIXELFORMAT_RGB565;
+         break;
+     case PIXMAN_a8r8g8b8:
+-    case PIXMAN_x8r8g8b8:
+         format = SDL_PIXELFORMAT_ARGB8888;
+         break;
++    case PIXMAN_x8r8g8b8:
++        format = SDL_PIXELFORMAT_RGB888;
++        break;
+     case PIXMAN_a8b8g8r8:
+-    case PIXMAN_x8b8g8r8:
+         format = SDL_PIXELFORMAT_ABGR8888;
+         break;
++    case PIXMAN_x8b8g8r8:
++        format = SDL_PIXELFORMAT_BGR888;
++        break;
+     case PIXMAN_r8g8b8a8:
+-    case PIXMAN_r8g8b8x8:
+         format = SDL_PIXELFORMAT_RGBA8888;
+         break;
++    case PIXMAN_r8g8b8x8:
++        format = SDL_PIXELFORMAT_RGBX8888;
++        break;
+     case PIXMAN_b8g8r8x8:
+         format = SDL_PIXELFORMAT_BGRX8888;
+         break;
