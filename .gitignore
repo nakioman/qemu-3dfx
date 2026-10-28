@@ -1,0 +1,4 @@
+# RetroBox build outputs (retrobox/build.sh)
+/retrobox/work/
+/retrobox/out/
+/wrappers/*/build/

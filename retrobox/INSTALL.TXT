@@ -1,0 +1,6 @@
+RetroBox XP tools: qemu-3dfx MESA GL pass-through for Windows XP
+
+1. Copy FXPTL.SYS to %SystemRoot%\system32\drivers
+2. Run INSTDRV.EXE as Administrator (installs the FXPTL driver)
+3. Copy OPENGL32.DLL into each game's installation folder.
+   For Direct3D games, also copy the WineD3D DLLs into the same folder.

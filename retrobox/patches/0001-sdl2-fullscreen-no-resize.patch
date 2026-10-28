@@ -1,0 +1,18 @@
+SDL2: never resize a fullscreen window on guest mode changes.
+
+On SDL's kmsdrm backend, SDL_SetWindowSize on a fullscreen window rebuilds
+the GBM/EGL surfaces and the opengl/opengles2 renderer keeps presenting to
+the old ones, so the panel stays black after the first guest mode switch.
+A fullscreen window already scales through SDL_RenderSetLogicalSize.
+
+--- ./ui/sdl2.c
++++ ./ui/sdl2.c
+@@ -143,7 +143,7 @@
+ 
+ void sdl2_window_resize(struct sdl2_console *scon)
+ {
+-    if (!scon->real_window) {
++    if (!scon->real_window || gui_fullscreen) {
+         return;
+     }
+ 

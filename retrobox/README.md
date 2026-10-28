@@ -1,0 +1,61 @@
+# RetroBox build of qemu-3dfx
+
+This branch packages qemu-3dfx for [RetroBox](https://github.com/nakioman/retro-pc),
+a Debian 13 retro PC appliance. It runs a Windows XP guest under KVM with
+OpenGL forwarded to the host GPU through the MESA GL pass-through, and
+Direct3D on top of it through WineD3D in the guest.
+
+`master` mirrors [kjliew/qemu-3dfx](https://github.com/kjliew/qemu-3dfx);
+RetroBox changes live on the `retrobox` branch.
+
+## Differences from upstream
+
+- **No X server.** QEMU builds the SDL GL context backend
+  (`mglcntx_sdlgl.c`) instead of the GLX one and runs on SDL's `kmsdrm`
+  driver, like 86Box on the appliance.
+- **Fullscreen fix for KMS/DRM** (`patches/0001-sdl2-fullscreen-no-resize.patch`):
+  QEMU no longer resizes a fullscreen SDL window on guest mode changes, which
+  left the panel black with SDL's GL renderers.
+- **Core 2 Duo guest.** The guest wrappers target `-march=core2` instead of
+  `x86-64-v2`.
+- **No Glide.** Only the MESA GL path ships; the Glide device stays in the
+  binary but no host Glide library or guest Glide DLLs are packaged.
+
+## Build
+
+On Debian 13 amd64, or anywhere with Docker:
+
+```bash
+docker run --rm --platform linux/amd64 -v "$PWD:/src" -w /src \
+    debian:trixie retrobox/build.sh --install-deps
+```
+
+`retrobox/out/` then holds:
+
+| File | Contents |
+| --- | --- |
+| `qemu-retrobox-<qemu>-<rev>-linux-x86_64.tar.gz` | QEMU installed under `/opt/qemu-retrobox` (unpack there). |
+| `retrobox-xp-tools-<rev>.iso` | `OPENGL32.DLL`, `FXPTL.SYS`, `INSTDRV.EXE`, `INSTALL.TXT` for the XP guest. |
+| `SHA256SUMS` | Checksums of both. |
+
+The host package and the tools ISO must come from the same commit; the
+wrappers check the revision stamped into QEMU.
+
+Runtime packages on the host (Debian 13): `libsdl2-2.0-0 libslirp0
+libpixman-1-0 libgl1 libglx-mesa0 libasound2t64`.
+
+## Releases
+
+GitHub Actions (`.github/workflows/retrobox.yml`) builds every push to
+`retrobox` and attaches the artifacts to a release for tags named
+`retrobox-*`.
+
+## Updating
+
+```bash
+git fetch upstream
+git checkout master && git merge --ff-only upstream/master && git push
+git checkout retrobox && git merge master
+```
+
+Bump `retrobox/qemu.env` when upstream moves to a new QEMU series patch.
