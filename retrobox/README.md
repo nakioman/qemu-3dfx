@@ -16,6 +16,12 @@ RetroBox changes live on the `retrobox` branch.
 - **Fullscreen fix for KMS/DRM** (`patches/0001-sdl2-fullscreen-no-resize.patch`):
   QEMU no longer resizes a fullscreen SDL window on guest mode changes, which
   left the panel black with SDL's GL renderers.
+- **1024x768 monitor** (`patches/0002-vga-vbe-caps-follow-edid.patch`): with
+  `-device VGA,edid=on,xmax=1024,ymax=768` the VGA BIOS only offers VESA
+  modes up to the EDID maximum, like a period monitor.
+- **4:3 CRT output** (`patches/0003-sdl2-fullscreen-force-4-3.patch`): in
+  fullscreen every 2D guest mode is stretched into a 4:3 box (e.g. the
+  720x400 text mode), the way a CRT displayed it.
 - **Core 2 Duo guest.** The guest wrappers target `-march=core2` instead of
   `x86-64-v2`.
 - **No Glide.** Only the MESA GL path ships; the Glide device stays in the

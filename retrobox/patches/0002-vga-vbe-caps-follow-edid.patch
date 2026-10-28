@@ -1,0 +1,51 @@
+vga: cap the VBE mode list at the EDID maximum.
+
+The std VGA BIOS builds its VESA mode list from VBE_DISPI_GETCAPS, which
+always reports 16000x12000, so the guest is offered modes far beyond the
+monitor its EDID (xmax/ymax) describes. Report the EDID maximum instead,
+so a 1024x768 monitor only gets 1024x768 and below.
+
+--- ./hw/display/vga_int.h
++++ ./hw/display/vga_int.h
+@@ -73,6 +73,9 @@
+     uint32_t vram_size_mb; /* property */
+     uint32_t vbe_size;
+     uint32_t vbe_size_mask;
++    /* VBE_DISPI_GETCAPS limits; 0 means VBE_DISPI_MAX_XRES/YRES */
++    uint16_t vbe_max_xres;
++    uint16_t vbe_max_yres;
+     uint32_t latch;
+     bool has_chain4_alias;
+     MemoryRegion chain4_alias;
+--- ./hw/display/vga.c
++++ ./hw/display/vga.c
+@@ -692,10 +692,10 @@
+             switch(s->vbe_index) {
+                 /* XXX: do not hardcode ? */
+             case VBE_DISPI_INDEX_XRES:
+-                val = VBE_DISPI_MAX_XRES;
++                val = s->vbe_max_xres ? s->vbe_max_xres : VBE_DISPI_MAX_XRES;
+                 break;
+             case VBE_DISPI_INDEX_YRES:
+-                val = VBE_DISPI_MAX_YRES;
++                val = s->vbe_max_yres ? s->vbe_max_yres : VBE_DISPI_MAX_YRES;
+                 break;
+             case VBE_DISPI_INDEX_BPP:
+                 val = VBE_DISPI_MAX_BPP;
+--- ./hw/display/vga-pci.c
++++ ./hw/display/vga-pci.c
+@@ -227,6 +227,14 @@
+     }
+ 
+     if (edid) {
++        /*
++         * Advertise the monitor's maximum as the VBE limit too, so the
++         * VGA BIOS mode list matches the EDID the guest reads over DDC.
++         */
++        if (d->edid_info.maxx && d->edid_info.maxy) {
++            s->vbe_max_xres = MIN(d->edid_info.maxx, VBE_DISPI_MAX_XRES);
++            s->vbe_max_yres = MIN(d->edid_info.maxy, VBE_DISPI_MAX_YRES);
++        }
+         qemu_edid_generate(d->edid, sizeof(d->edid), &d->edid_info);
+         qemu_edid_region_io(&subs[3], owner, d->edid, sizeof(d->edid));
+         memory_region_add_subregion(parent, 0, &subs[3]);
