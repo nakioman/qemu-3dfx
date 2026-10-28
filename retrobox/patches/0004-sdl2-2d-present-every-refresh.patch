@@ -1,0 +1,53 @@
+SDL2: re-present the 2D frame on every refresh.
+
+On the kmsdrm backend with a GL renderer, a frame presented once never
+reaches the screen; it only shows once later frames are presented. QEMU
+presents only when the guest updates the display, so static screens (BIOS,
+setup, an idle desktop) stayed black. Present the current texture on every
+refresh tick (30 ms), which costs one textured quad per tick.
+
+--- ./ui/sdl2-2d.c
++++ ./ui/sdl2-2d.c
+@@ -44,6 +44,14 @@
+     SDL_RenderSetLogicalSize(scon->real_renderer, w, h);
+ }
+ 
++static void sdl2_2d_present(struct sdl2_console *scon)
++{
++    sdl2_2d_set_logical_size(scon);
++    SDL_RenderClear(scon->real_renderer);
++    SDL_RenderCopy(scon->real_renderer, scon->texture, NULL, NULL);
++    SDL_RenderPresent(scon->real_renderer);
++}
++
+ void sdl2_2d_update(DisplayChangeListener *dcl,
+                     int x, int y, int w, int h)
+ {
+@@ -67,10 +75,7 @@
+     SDL_UpdateTexture(scon->texture, &rect,
+                       surface_data(surf) + surface_data_offset,
+                       surface_stride(surf));
+-    sdl2_2d_set_logical_size(scon);
+-    SDL_RenderClear(scon->real_renderer);
+-    SDL_RenderCopy(scon->real_renderer, scon->texture, NULL, NULL);
+-    SDL_RenderPresent(scon->real_renderer);
++    sdl2_2d_present(scon);
+ }
+ 
+ void sdl2_2d_switch(DisplayChangeListener *dcl,
+@@ -146,6 +151,15 @@
+     assert(!scon->opengl);
+     graphic_hw_update(dcl->con);
+     sdl2_poll_events(scon);
++
++    /*
++     * On the kmsdrm backend a presented frame only reaches the screen once
++     * later frames are presented, so a guest that stops drawing (a BIOS or
++     * setup screen) would leave the panel black. Re-present every refresh.
++     */
++    if (scon->texture) {
++        sdl2_2d_present(scon);
++    }
+ }
+ 
+ void sdl2_2d_redraw(struct sdl2_console *scon)
